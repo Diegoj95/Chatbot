@@ -30,7 +30,7 @@ namespace ChatBot
             {
                 if (member.Id != turnContext.Activity.Recipient.Id)
                 {
-                    await turnContext.SendActivityAsync(MessageFactory.Text($"Hello world!"), cancellationToken);
+                    await turnContext.SendActivityAsync(MessageFactory.Text($"Hola Bienvenido, soy un chatbot en versión demo creado para Avalora"), cancellationToken);
                 }
             }
         }

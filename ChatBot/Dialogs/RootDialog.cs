@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Bot.Builder;
 using Microsoft.Bot.Builder.Dialogs;
+using System.Text.RegularExpressions;
 
 namespace ChatBot.Dialogs
 {
@@ -15,22 +16,18 @@ namespace ChatBot.Dialogs
             var waterfallStep = new WaterfallStep[]
             {
                 SetName,
-                SetAge,           
-                ShowData
+                SetEmail,
+                //SetDni,
+                //ShowData
             };
-
             AddDialog(new WaterfallDialog(nameof(WaterfallDialog), waterfallStep));
-            AddDialog(new TextPrompt(nameof(TextPrompt)));
-            AddDialog(new NumberPrompt<int>(nameof(NumberPrompt<int>), ValidateAge));
+            AddDialog(new TextPrompt(nameof(TextPrompt), TextPromptValidator));
         }
-
-        private async Task<bool> ValidateAge(PromptValidatorContext<int> promptContext, CancellationToken cancellationToken)
+        private enum Validator
         {
-            return await Task.FromResult(
-                promptContext.Recognized.Succeeded &&
-                promptContext.Recognized.Value > 0 &&
-                promptContext.Recognized.Value < 150
-            );
+            Name,
+            Email,
+            //Rut,
         }
 
         private async Task<DialogTurnResult> SetName(WaterfallStepContext stepContext, CancellationToken cancellationToken)
@@ -44,24 +41,45 @@ namespace ChatBot.Dialogs
             );
         }
 
-        private async Task<DialogTurnResult> SetAge(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        private async Task<DialogTurnResult> SetEmail(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            var name = stepContext.Context.Activity.Text;
             return await stepContext.PromptAsync(
-                nameof(NumberPrompt<int>), 
-                new PromptOptions
-                {
-                    Prompt = MessageFactory.Text($"Bien {name}, ahora necesito tu edad"),
-                    RetryPrompt = MessageFactory.Text($"{name}, por favor ingresa una edad valida")
-                },
-                cancellationToken
-                );
+                nameof(TextPrompt), 
+                new PromptOptions { Prompt = MessageFactory.Text("Ingresa tu correo electronico"), RetryPrompt = MessageFactory.Text("Ingresa un correo valido"), Validations = Validator.Email }, 
+                cancellationToken);
         }
 
+        private async Task<bool> TextPromptValidator(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
+        {
+            switch (promptContext.Options.Validations != null ? (Validator)promptContext.Options.Validations : (Validator)(-1))
+            {
+                case Validator.Email:
+
+                    string email = @"((\S+)([@]{1})(\S[^.]+)(\.)([a-zA-Z]{1,5})((\.)([a-zA-Z]{1,5}))?)";
+                    string input = promptContext.Context.Activity.Text;
+
+                    Match m = Regex.Match(input, email);
+
+                    if (m.Success)
+                    {
+                        return await Task.FromResult(true);
+                    }
+                    else
+                    {
+                        return await Task.FromResult(false);
+                    }
+
+                default:
+                    return await Task.FromResult(true);
+            }
+        }
+
+        /*
         private async Task<DialogTurnResult> ShowData(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             await stepContext.Context.SendActivityAsync("Genial, gracias por registrar tus datos.", cancellationToken: cancellationToken);
             return await stepContext.EndDialogAsync(cancellationToken: cancellationToken);
         }
+        */
     }
 }
