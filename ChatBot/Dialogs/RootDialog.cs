@@ -17,8 +17,8 @@ namespace ChatBot.Dialogs
             {
                 SetName,
                 SetEmail,
-                //SetDni,
-                //ShowData
+                SetDni,
+                ShowData
             };
             AddDialog(new WaterfallDialog(nameof(WaterfallDialog), waterfallStep));
             AddDialog(new TextPrompt(nameof(TextPrompt), TextPromptValidator));
@@ -27,12 +27,13 @@ namespace ChatBot.Dialogs
         {
             Name,
             Email,
-            //Rut,
+            Rut,
         }
 
+        //ESTE METODO LE PREGUNTA AL USUARIO SU NOMBRE
         private async Task<DialogTurnResult> SetName(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
-            await stepContext.Context.SendActivityAsync("Necesito algunos datos", cancellationToken: cancellationToken);
+            await stepContext.Context.SendActivityAsync("Antes de comenzar necesito algunos datos", cancellationToken: cancellationToken);
             await Task.Delay(1000);
             return await stepContext.PromptAsync(
                 nameof(TextPrompt),
@@ -41,14 +42,26 @@ namespace ChatBot.Dialogs
             );
         }
 
+        //ESTE METODO LE PREGUNTA AL USUARIO SE CORREO ELECTRONICO
         private async Task<DialogTurnResult> SetEmail(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             return await stepContext.PromptAsync(
                 nameof(TextPrompt), 
-                new PromptOptions { Prompt = MessageFactory.Text("Ingresa tu correo electronico"), RetryPrompt = MessageFactory.Text("Ingresa un correo valido"), Validations = Validator.Email }, 
+                new PromptOptions { Prompt = MessageFactory.Text("Por favor, ingresa tu correo electronico"), RetryPrompt = MessageFactory.Text("Ingresa un correo válido"), Validations = Validator.Email }, 
                 cancellationToken);
         }
 
+        //ESTE METODO LE PREGUNTA AL USUARIO SU RUT
+        private async Task<DialogTurnResult> SetDni(WaterfallStepContext stepContext, CancellationToken cancellationToken)
+        {
+            return await stepContext.PromptAsync(
+                nameof(TextPrompt),
+                new PromptOptions { Prompt = MessageFactory.Text("Ingresa tu rut"), RetryPrompt = MessageFactory.Text("Por favor, ingresa un rut válido"), Validations = Validator.Rut },
+                cancellationToken);
+        }
+
+
+        //ESTE METODO SE ENCARGA DE VALIDAR LAS RESPUESTAS DEL USUARIO POR MEDIO DE EXPRESIONES REGULARES
         private async Task<bool> TextPromptValidator(PromptValidatorContext<string> promptContext, CancellationToken cancellationToken)
         {
             switch (promptContext.Options.Validations != null ? (Validator)promptContext.Options.Validations : (Validator)(-1))
@@ -69,17 +82,34 @@ namespace ChatBot.Dialogs
                         return await Task.FromResult(false);
                     }
 
+
+                case Validator.Rut:
+
+                    string rut = @"\b(\d{1,3}(?:(\.?)\d{3}){2}(-)[\dkK])\b";
+                    string input2 = promptContext.Context.Activity.Text;
+
+                    Match m2 = Regex.Match(input2, rut);
+
+                    if (m2.Success)
+                    {
+                        return await Task.FromResult(true);
+                    }
+                    else
+                    {
+                        return await Task.FromResult(false);
+                    }
+
                 default:
                     return await Task.FromResult(true);
             }
         }
 
-        /*
+        
         private async Task<DialogTurnResult> ShowData(WaterfallStepContext stepContext, CancellationToken cancellationToken)
         {
             await stepContext.Context.SendActivityAsync("Genial, gracias por registrar tus datos.", cancellationToken: cancellationToken);
             return await stepContext.EndDialogAsync(cancellationToken: cancellationToken);
         }
-        */
+        
     }
 }
